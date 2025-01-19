@@ -2,6 +2,7 @@ import Category from "../model/categorySchema.js"; // Import the Category model
 import Subcategory from "../model/subcategorySchema.js";
 import Customization from "../model/customizationSchema.js";
 import Product from "../model/productSchema.js";
+import Order from "../model/orderSchema.js";
 export const HandleAddCategory = async (req, res) => {
   const { name } = req.body;
 
@@ -149,11 +150,86 @@ export const getAllCustomizations = async (req, res) => {
     res.status(500).json({ error: "Failed to fetch customizations." });
   }
 };
+
+export const updateOrderStatus = async (req, res) => {
+  const { orderId } = req.params; // Extract orderId from the URL
+  const { status } = req.body; // Extract new status from the request body
+
+  // Validate input
+  if (!orderId || !status) {
+    return res.status(400).json({ error: "Order ID and status are required." });
+  }
+
+  // Validate status
+  const validStatuses = ["Pending", "Processing", "Completed", "Cancelled"];
+  if (!validStatuses.includes(status)) {
+    return res.status(400).json({ error: "Invalid status." });
+  }
+
+  try {
+    // Find the order by ID
+    const order = await Order.findById(orderId);
+    if (!order) {
+      return res.status(404).json({ error: "Order not found." });
+    }
+
+    // Update the order status
+    order.status = status;
+    await order.save();
+
+    // Send success response
+    res.status(200).json({ message: "Order status updated successfully.", order });
+  } catch (err) {
+    console.error("Error updating order status:", err);
+    res.status(500).json({ error: "Failed to update order status." });
+  }
+};
+export const GetAllOrders = async (req, res) => {
+  try {
+    // Fetch all orders and populate the 'product' field
+    const orders = await Order.find({})
+      .populate({
+        path: "product",
+        select: "name image category subcategory", // Select specific fields from the product
+        populate: [
+          {
+            path: "category",
+            select: "name", // Populate the category name
+          },
+          {
+            path: "subcategory",
+            select: "name", // Populate the subcategory name
+          },
+        ],
+      })
+      .sort({ createdAt: -1 }); // Sort by creation date (newest first)
+
+    // Format the orders for better readability
+    const formattedOrders = orders.map((order) => ({
+      _id: order._id,
+      product: {
+        name: order.product?.name || "N/A",
+        image: order.product?.image || "N/A",
+        category: order.product?.category?.name || "N/A",
+        subcategory: order.product?.subcategory?.name || "N/A",
+      },
+      selectedOptions: Object.fromEntries(order.selectedOptions), // Convert Map to plain object
+      userDetails: order.userDetails,
+      location: order.location,
+      status: order.status,
+      createdAt: order.createdAt,
+    }));
+
+    // Send the formatted orders to the frontend
+    res.status(200).json(formattedOrders);
+  } catch (err) {
+    console.error("Error fetching orders:", err);
+    res.status(500).json({ error: "Failed to fetch orders." });
+  }
+};
 export const HandleDeleteProduct = async (req, res) => {
   const productId  = req?.params.id;
-  console.log(req.params.id)
   
-console.log(productId)
   // Validate input
   if (!productId) {
     return res.status(400).json({ error: "Product ID is required." });

@@ -4,13 +4,18 @@ import cors from "cors";
 import { connectDB } from "./connection.js";
 import AdminRouter from "./router/AdminRouter.js";
 import ClientRouter from "./router/ClientRouter.js";
-
+import Admin from "./model/AdminSchema.js";
+import bcrypt from "bcrypt"
 dotenv.config();
+const corsOptions = {
+  origin: "http://localhost:3000", // Allow requests from this origin
+  credentials: true, // Allow credentials (cookies, authorization headers)
+};
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 app.use('/uploads', express.static('uploads'));
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(express.json());
 
 connectDB();
@@ -24,6 +29,35 @@ const authMiddleware = (req, res, next) => {
   }
 };
 
+const seedAdmin = async () => {
+  await connectDB();
+
+  const adminEmail = "krivecustom@gmail.com";
+
+  try {
+    // Check if the admin already exists
+    const existingAdmin = await Admin.findOne({ email: adminEmail });
+    if (existingAdmin) {
+      console.log("Admin already exists. Skipping seeding.");
+      return; // Exit the function if the admin exists
+    }
+
+    // Create a new admin
+    const admin = new Admin({
+      email: adminEmail,
+      password: await bcrypt.hash("krivecustom1234", 10),
+    });
+
+    // Save the admin to the database
+    await admin.save();
+    console.log("Admin seeded successfully.");
+  } catch (err) {
+    console.error("Error seeding admin:", err);
+  }
+};
+
+// Run the seed function
+seedAdmin();
 app.use("/admin",AdminRouter);
 app.use("/client",ClientRouter);
 // Start the server
