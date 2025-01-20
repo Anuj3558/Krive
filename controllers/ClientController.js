@@ -6,6 +6,7 @@ import Order from '../model/orderSchema.js'; // Import the Order model
 // Controller function to save order details
 import nodemailer from 'nodemailer';
 import Customization from "../model/customizationSchema.js";
+import Alteration from "../model/alterationSchema.js";
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -220,6 +221,142 @@ export const placeOrder = async (req, res) => {
     res.status(500).json({ 
       message: 'Failed to place order. Please try again.' 
     });
+  }
+};
+// Email template for alteration request confirmation
+const generateAlterationEmailTemplate = (alteration) => `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Alteration Request Confirmation</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      background-color: #f4f7f9;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 600px;
+      margin: 20px auto;
+      background-color: #ffffff;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+    }
+    .header {
+      background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+      color: white;
+      padding: 30px;
+      text-align: center;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: 1px;
+    }
+    .content {
+      padding: 30px;
+    }
+    .details {
+      background-color: #f8fafc;
+      padding: 25px;
+      margin: 20px 0;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+    .footer {
+      text-align: center;
+      padding: 30px;
+      background-color: #f8fafc;
+      color: #718096;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🎉 Alteration Request Received!</h1>
+    </div>
+    <div class="content">
+      <p>Dear ${alteration.userDetails.name},</p>
+      <p>Thank you for submitting your alteration request. We have received the following details:</p>
+      
+      <div class="details">
+        <h2>Request Details</h2>
+        <p><strong>Instructions:</strong> ${alteration.instruction}</p>
+        <p><strong>Status:</strong> ${alteration.status}</p>
+        <p><strong>Address:</strong> ${alteration.userDetails.address}</p>
+      </div>
+
+      <p>We will process your request shortly. You will receive updates on your email.</p>
+    </div>
+
+    <div class="footer">
+      <p>Email sent to: ${alteration.userDetails.email}</p>
+      <p>© ${new Date().getFullYear()} Your Company Name. All rights reserved.</p>
+    </div>
+  </div>
+</body>
+</html>
+`;
+
+// Controller function to handle alteration request
+export const createAlterationRequest = async (req, res) => {
+  const { instruction, userDetails } = req.body;
+  const parsedUserDetails = JSON.parse(userDetails);
+  console.log(parsedUserDetails)
+  try {
+    // Validate required fields
+    if (  !instruction || !userDetails ) {
+      return res.status(400).json({ message: 'All fields are required' });
+    }
+    const filename = req?.file?.path;
+    const Address = userDetails?.address;
+    // Create new alteration request
+    const newAlteration = new Alteration({
+      image:filename,
+      instruction,
+      userDetails:parsedUserDetails,
+      status: 'Pending', // Default status
+    });
+
+    // Save to database
+    await newAlteration.save();
+
+    // Send confirmation email
+    const mailOptions = {
+      from: "anujloharkar3557@gmail.com",
+      to: parsedUserDetails?.email,
+      subject: '🎉 Alteration Request Received!',
+      html: generateAlterationEmailTemplate(newAlteration),
+    };
+
+    await transporter.sendMail(mailOptions);
+
+    res.status(201).json({
+      message: 'Alteration request submitted successfully',
+      alteration: newAlteration,
+    });
+  } catch (error) {
+    console.error('Error creating alteration request:', error);
+    res.status(500).json({ message: 'Failed to submit alteration request' });
+  }
+};
+
+// Controller function to get all alteration requests
+export const getAllAlterationRequests = async (req, res) => {
+  try {
+    const alterations = await Alteration.find();
+    res.status(200).json(alterations);
+  } catch (error) {
+    console.error('Error fetching alteration requests:', error);
+    res.status(500).json({ message: 'Failed to fetch alteration requests' });
   }
 };
 export const getAllProductsForClient = async (req, res) => {

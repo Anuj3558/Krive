@@ -8,7 +8,7 @@ import Admin from "./model/AdminSchema.js";
 import bcrypt from "bcrypt"
 dotenv.config();
 const corsOptions = {
-  origin: "https://krive-in.onrender.com", // Allow requests from this origin
+  origin: "http://localhost:3000", // Allow requests from this origin
   credentials: true, // Allow credentials (cookies, authorization headers)
 };
 
