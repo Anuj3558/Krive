@@ -16,6 +16,7 @@ import upload from "../multerConfig.js";
 import Admin from "../model/AdminSchema.js";
 import bcrypt from "bcrypt"
 import jwt from "jsonwebtoken"
+import { getAllAlterationRequests } from "../controllers/ClientController.js";
 const AdminRouter = Router();
 
 // Route to add a category
@@ -73,6 +74,8 @@ AdminRouter.post("/login", async (req, res) => {
 });
 
 // Protected route example
+AdminRouter.get("/getallaltrequest", getAllAlterationRequests);
+
 
 
 export default AdminRouter;
