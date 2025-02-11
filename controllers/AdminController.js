@@ -3,6 +3,155 @@ import Subcategory from "../model/subcategorySchema.js";
 import Customization from "../model/customizationSchema.js";
 import Product from "../model/productSchema.js";
 import Order from "../model/orderSchema.js";
+import FabricSubcategory from "../model/FabricSubcategory.js";
+import FabricCategory from "../model/FabricCategory.js";
+import Fabric from "../model/Fabric.js";
+import mongoose from "mongoose";
+
+
+
+export const addFabricSubcategory = async (req, res) => {
+  const { name, category } = req.body;
+
+  // Validate input
+  if (!name || !category) {
+    return res.status(400).json({ error: "Name and category are required." });
+  }
+
+  try {
+    // Check if the category exists
+    const existingCategory = await FabricCategory.findById(category);
+    if (!existingCategory) {
+      return res.status(400).json({ error: "Category does not exist." });
+    }
+
+    // Check if the subcategory already exists
+    const existingSubcategory = await FabricSubcategory.findOne({ name, category });
+    if (existingSubcategory) {
+      return res.status(400).json({ error: "Subcategory already exists for this category." });
+    }
+
+    // Create a new subcategory
+    const newSubcategory = new FabricSubcategory({ name, category });
+
+    // Save the subcategory to the database
+    await newSubcategory.save();
+
+    // Add the subcategory to the category's subcategories array
+    existingCategory.subcategories.push(newSubcategory._id);
+    await existingCategory.save();
+
+    // Send success response
+    res.status(201).json({ message: "Fabric subcategory added successfully.", subcategory: newSubcategory });
+  } catch (err) {
+    console.error("Error adding fabric subcategory:", err);
+    res.status(500).json({ error: "Failed to add fabric subcategory." });
+  }
+};
+
+export const addFabric = async (req, res) => {
+  const { name, subcategory } = req.body;
+  console.log(req.files)
+  // Extract types from the request
+  const types = [];
+  let i = 0;
+  while (true) {
+    const typeName = req.body.types?.[i]?.name;
+    const typeImage = req.files?.[`${i}`]?.path; // Access the file path
+
+    // Stop the loop if no more types are found
+    if (!typeName || !typeImage) {
+      break;
+    }
+
+    types.push({
+      id: new mongoose.Types.ObjectId().toString(), // Generate a unique ID for the type
+      name: typeName,
+      image: typeImage, // Use the file path
+      price: req.body.types[i].price || 0, // Default price to 0 if not provided
+    });
+
+    i++; // Move to the next type
+  }
+console.log(types)
+  // Validate input
+  if (!name || !subcategory || types.length === 0) {
+    return res.status(400).json({ error: "Name, subcategory, and types are required." });
+  }
+
+  try {
+    // Check if the subcategory exists
+    const existingSubcategory = await FabricSubcategory.findById(subcategory);
+    if (!existingSubcategory) {
+      return res.status(400).json({ error: "Subcategory does not exist." });
+    }
+
+    // Create a new fabric
+    const newFabric = new Fabric({
+      name,
+      subcategory,
+      types,
+    });
+
+    // Save the fabric to the database
+    await newFabric.save();
+
+    // Add the fabric to the subcategory's fabrics array
+    existingSubcategory.fabrics.push(newFabric._id);
+    await existingSubcategory.save();
+
+    // Send success response
+    res.status(201).json({ message: "Fabric added successfully.", fabric: newFabric });
+  } catch (err) {
+    console.error("Error adding fabric:", err);
+    res.status(500).json({ error: "Failed to add fabric." });
+  }
+};
+export const HandleFabricSubcategory = async (req, res) => {
+  const { name, categoryId } = req.body;
+
+  try {
+    // Check if the category exists
+    const category = await FabricCategory.findById(categoryId);
+    if (!category) {
+      return res.status(404).json({ message: 'Category not found' });
+    }
+
+    // Create a new subcategory
+    const newSubcategory = new FabricSubcategory({ name, category: categoryId });
+    await newSubcategory.save();
+
+    // Add the subcategory to the category
+    category.subcategories.push(newSubcategory._id);
+    await category.save();
+
+    res.status(201).json({ message: 'Subcategory created successfully', subcategory: newSubcategory });
+  } catch (error) {
+    console.error('Error creating subcategory:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+export const HandleFabricCategory = async (req, res) => {
+  const { name } = req.body;
+
+  try {
+    // Check if the category already exists
+    const existingCategory = await FabricCategory.findOne({ name });
+    if (existingCategory) {
+      return res.status(400).json({ message: 'Category already exists' });
+    }
+
+    // Create a new category
+    const newCategory = new FabricCategory({ name });
+    await newCategory.save();
+
+    res.status(201).json({ message: 'Category created successfully', category: newCategory });
+  } catch (error) {
+    console.error('Error creating category:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
 export const HandleAddCategory = async (req, res) => {
   const { name } = req.body;
 

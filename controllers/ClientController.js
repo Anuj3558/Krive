@@ -7,6 +7,196 @@ import Order from '../model/orderSchema.js'; // Import the Order model
 import nodemailer from 'nodemailer';
 import Customization from "../model/customizationSchema.js";
 import Alteration from "../model/alterationSchema.js";
+import FabricCategory from "../model/FabricCategory.js";
+import FabricSubcategory from "../model/FabricSubcategory.js";
+import MyDesignOrder from "../model/MyDesignOrderSchema.js";
+import { json } from "express";
+import mongoose from "mongoose";
+
+const generateMyDesignEmailTemplate = (order) => `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🎉 Your Design Order Confirmation</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      background-color: #f4f7f9;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 600px;
+      margin: 20px auto;
+      background-color: #ffffff;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+    }
+    .header {
+      background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+      color: white;
+      padding: 30px;
+      text-align: center;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: 1px;
+    }
+    .content {
+      padding: 30px;
+    }
+    .details {
+      background-color: #f8fafc;
+      padding: 25px;
+      margin: 20px 0;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+    .footer {
+      text-align: center;
+      padding: 30px;
+      background-color: #f8fafc;
+      color: #718096;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🎉 Your Design Order is Confirmed!</h1>
+    </div>
+    <div class="content">
+      <p>Dear ${order.customerName},</p>
+      <p>Thank you for submitting your custom design! We have received the following details:</p>
+      
+      <div class="details">
+        <h2>Order Details</h2>
+        <p><strong>Order ID:</strong> ${order._id}</p>
+        <p><strong>Fabric Type:</strong> ${order.fabricTypeId}</p>
+        <p><strong>Design Image:</strong> <a href="${order.designImage}" target="_blank">View Design</a></p>
+        <p><strong>Status:</strong> ${order.orderStatus}</p>
+      </div>
+
+      <p>We will process your order shortly. You will receive updates on your email.</p>
+    </div>
+
+    <div class="footer">
+      <p>Email sent to: ${order.customerEmail}</p>
+      <p>© ${new Date().getFullYear()} Your Company Name. All rights reserved.</p>
+    </div>
+  </div>
+</body>
+</html>
+`;
+
+// Controller function to handle MyDesignOrder creation
+export const createMyDesignOrder = async (req, res) => {
+  const { name,phone, email,address, fabricTypeId } = req.body;
+    const designImage=req?.file?.path;
+  const fabricTypeIds = Array.isArray(fabricTypeId) 
+      ? fabricTypeId.map(id => new mongoose.Types.ObjectId(id)) // Convert each string to ObjectId
+      : [new mongoose.Types.ObjectId(fabricTypeId)]  
+  try {
+    // Validate required fields
+    if (!name || !phone || !email || !address || !fabricTypeId ) {
+      return res.status(400).json({ message: 'All fields are required.' });
+    }
+
+    // Create new MyDesignOrder
+    const newOrder = new MyDesignOrder({
+      customerName:name,
+      customerPhone:phone,
+      customerEmail:email,
+      customerAddress:address,
+      fabricTypeId:fabricTypeIds,
+      designImage,
+      orderStatus: 'Pending', // Default status
+    });
+
+    // Save to database
+    await newOrder.save();
+
+    // Send confirmation email
+    const mailOptions = {
+      from: process.env.EMAIL_USER, // Sender email
+      to: email, // Recipient email
+      subject: '🎉 Your Design Order is Confirmed!',
+      html: generateMyDesignEmailTemplate(newOrder),
+    };
+
+    await transporter.sendMail(mailOptions);
+
+    // Return success response
+    res.status(201).json({
+      message: 'Design order submitted successfully!',
+      order: newOrder,
+    });
+  } catch (error) {
+    console.error('Error creating design order:', error);
+    res.status(500).json({ message: 'Failed to submit design order. Please try again.' });
+  }
+};
+export const getAllFabricCategories = async (req, res) => {
+  try {
+    // Find all fabric categories and populate their subcategories and fabrics
+    const fabricCategories = await FabricCategory.find()
+     ;
+
+    // If no categories are found, return a 404 error
+    if (!fabricCategories || fabricCategories.length === 0) {
+      return res.status(404).json({ message: "No fabric categories found." });
+    }
+
+    // Return the fabric categories
+    res.status(200).json({ fabricCategories });
+  } catch (err) {
+    console.error("Error fetching fabric categories:", err);
+    res.status(500).json({ error: "Failed to fetch fabric categories." });
+  }
+};
+
+export const getFabricData = async (req,res) => {
+  try {
+    // Fetch all categories
+    const categories = await FabricCategory.find().populate({
+      path: 'subcategories',
+      populate: {
+        path: 'fabrics',
+      },
+    });
+
+    // Format the data
+    const formattedData = categories.map((category) => {
+      return {
+        category: category.name,
+        subcategories: category.subcategories.map((subcategory) => {
+          return {
+            name: subcategory.name,
+            fabrics: subcategory.fabrics.map((fabric) => {
+              return {
+                id: fabric._id,
+                name: fabric.name,
+                types: fabric.types,
+              };
+            }),
+          };
+        }),
+      };
+    });
+
+     res.send(formattedData);
+  } catch (error) {
+    console.error('Error fetching fabric data:', error);
+    throw new Error('Failed to fetch fabric data');
+  }
+};
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -15,7 +205,23 @@ const transporter = nodemailer.createTransport({
     pass: "uftqmoltbsdrmgop"
   }
 });
+export const getAllFabricSubcategories = async (req, res) => {
+  try {
+    // Find all subcategories
+    const subcategories = await FabricSubcategory.find();
 
+    // If no subcategories are found, return a 404 error
+    if (!subcategories || subcategories.length === 0) {
+      return res.status(404).json({ message: "No subcategories found." });
+    }
+
+    // Return the subcategories
+    res.status(200).json({ subcategories });
+  } catch (err) {
+    console.error("Error fetching subcategories:", err);
+    res.status(500).json({ error: "Failed to fetch subcategories." });
+  }
+};
 const generateOrderEmailTemplate = (order, product, userDetails) => `
 <!DOCTYPE html>
 <html lang="en">
@@ -185,10 +391,6 @@ export const placeOrder = async (req, res) => {
         email: userDetails.email,
         phone: userDetails.phone,
         location: userDetails.location
-      },
-      location: {
-        latitude: location.latitude,
-        longitude: location.longitude
       },
       status: 'Pending',
       createdAt: new Date()
@@ -373,7 +575,7 @@ export const getAllProductsForClient = async (req, res) => {
             select: "name image", // Include 'name' and 'image' fields for each option
           },
         });
-        console.log(products);
+        
   
       // Send the populated products to the frontend
       res.status(200).json(products);

@@ -16,10 +16,7 @@ const orderSchema = new mongoose.Schema({
     phone: { type: String, required: true },
     location: { type: String, required: true },
   },
-  location: {
-    latitude: { type: Number, required: true },
-    longitude: { type: Number, required: true },
-  },
+
   status: {
     type: String,
     enum: ['Pending', 'Processing', 'Completed', 'Cancelled'],

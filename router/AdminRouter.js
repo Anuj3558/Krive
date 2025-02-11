@@ -11,6 +11,9 @@ import {
   getAllProducts,
   GetAllOrders,
   updateOrderStatus,
+  addFabric,
+  HandleFabricCategory,
+  addFabricSubcategory,
 } from "../controllers/AdminController.js";
 import upload from "../multerConfig.js";
 import Admin from "../model/AdminSchema.js";
@@ -33,6 +36,9 @@ AdminRouter.get("/customizations", getAllCustomizations);
 
 // Route to add a product
 AdminRouter.post("/addProduct",upload.single("image"), HandleAddProduct);
+AdminRouter.post("/add-fabric",upload.any(), addFabric);
+AdminRouter.post("/fabric-category", HandleFabricCategory);
+AdminRouter.post("/fabric-subcategory", addFabricSubcategory);
 
 // Route to delete a product
 AdminRouter.delete("/deleteProduct/:id", HandleDeleteProduct);
