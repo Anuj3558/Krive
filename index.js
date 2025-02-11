@@ -8,7 +8,7 @@ import Admin from "./model/AdminSchema.js";
 import bcrypt from "bcrypt"
 dotenv.config();
 const corsOptions = {
-  origin: "http://localhost:3000", // Allow requests from this origin
+  origin: "https://krivein.vercel.app", // Allow requests from this origin
   credentials: true, // Allow credentials (cookies, authorization headers)
 };
 
