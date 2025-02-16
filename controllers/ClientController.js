@@ -374,11 +374,10 @@ const generateOrderEmailTemplate = (order, product, userDetails) => `
 `;
 
 export const placeOrder = async (req, res) => {
-  const { productId, selectedOptions, userDetails, location } = req.body;
-
+  const { productId, selectedOptions, userDetails } = req.body;
   try {
     // Validate required fields
-    if (!productId?.trim() || !userDetails?.email || !location) {
+    if (!productId?.trim() || !userDetails?.email || !userDetails.location) {
       return res.status(400).json({ message: 'Missing required fields' });
     }
 
