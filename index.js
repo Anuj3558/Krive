@@ -9,7 +9,7 @@ import bcrypt from "bcrypt"
 import path from "path";
 dotenv.config();
 const corsOptions = {
-  origin: "http://localhost:3001", // Allow requests from this origin
+  origin: "https://krivein.vercel.app", // Allow requests from this origin
   credentials: true, // Allow credentials (cookies, authorization headers)
 };
 
