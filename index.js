@@ -6,15 +6,16 @@ import AdminRouter from "./router/AdminRouter.js";
 import ClientRouter from "./router/ClientRouter.js";
 import Admin from "./model/AdminSchema.js";
 import bcrypt from "bcrypt"
+import path from "path";
 dotenv.config();
 const corsOptions = {
-  origin: "https://krivein.vercel.app", // Allow requests from this origin
+  origin: "http://localhost:3001", // Allow requests from this origin
   credentials: true, // Allow credentials (cookies, authorization headers)
 };
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-app.use('/uploads', express.static('uploads'));
+app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 app.use(cors(corsOptions));
 app.use(express.json());
 
