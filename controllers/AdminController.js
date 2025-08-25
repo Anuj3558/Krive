@@ -417,8 +417,8 @@ export const getAllProducts = async (req, res) => {
 };
 export const HandleAddProduct = async (req, res) => {
   const { name,  categoryId, subcategoryId, customizations } = req.body;
-  const image = req.file ? req.file.path : null;
-   
+  const image = req.file ? req.file.location : null;
+  console.log(req.file)
 
   if (!name || !subcategoryId) {
     return res.status(400).json({ error: 'Name and subcategory are required.' });

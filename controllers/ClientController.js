@@ -411,7 +411,7 @@ export const placeOrder = async (req, res) => {
       html: generateOrderEmailTemplate(newOrder, product, userDetails)
     };
 
-    await transporter.sendMail(mailOptions);
+    // await transporter.sendMail(mailOptions);
 
     res.status(200).json({ 
       message: 'Order placed successfully', 

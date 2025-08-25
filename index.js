@@ -18,7 +18,7 @@ const PORT = process.env.PORT || 5000;
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 app.use(
   cors({
-    origin: ["https://krivein.vercel.app"], // allow your frontend domain
+    origin: ["http://localhost:3001"], // allow your frontend domain
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     credentials: true, // if you're sending cookies or auth headers
   })
